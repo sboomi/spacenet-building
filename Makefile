@@ -13,6 +13,7 @@ PYTHON_INTERPRETER = python3
 MUL_PANSHARPEN_IMGS = data/processed/train/data/MUL-PanSharpen
 BUILDING_FOLDER = data/processed/train/buildings
 MODEL_FOLDER = models
+INFO_FOLDER = data/raw/train/info
 INFO_CSV = data/processed/train/Building_Solutions.csv
 REPORT_FOLDER = reports/figures
 MUL_PANSHARPEN_MEAN_STD_JSON = data/processed/stats_mul_pan.json
@@ -86,6 +87,14 @@ endif
 ## Test python environment is setup correctly
 test_environment:
 	$(PYTHON_INTERPRETER) test_environment.py
+
+## Check dataset
+check_mul_pansharpen:
+	$(PYTHON_INTERPRETER) src\data\building_info.py \
+	$(MUL_PANSHARPEN_IMGS) \
+	$(INFO_FOLDER) \
+	$(INFO_CSV)
+
 
 ## Train model
 train_mul_pansharpen:

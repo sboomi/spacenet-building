@@ -1,5 +1,7 @@
 import pandas as pd
 import logging
+import click
+from pathlib import Path
 
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.INFO, format=log_fmt)
@@ -33,3 +35,22 @@ def count_files_per_city(image_folder):
     for city, count in count_dict.items():
         logger.info(f"{city}: {count} images")
         
+
+@click.command()
+@click.argument("image_folder", type=click.Path(exists=True))
+@click.argument("csv_folder", type=click.Path(exists=True))
+@click.argument("csv_res", type=click.Path())
+def main(image_folder, csv_folder, csv_res):
+    csv_res = Path(csv_res)
+    
+    if not csv_res.exists():
+        df = generate_csv(csv_folder, csv_res)
+    else:
+        df = pd.read_csv(csv_res)
+
+    count_images(df)
+    count_files_per_city(image_folder)    
+
+
+if __name__ == "__main__":
+    main()
