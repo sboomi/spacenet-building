@@ -10,6 +10,17 @@ PROFILE = default
 PROJECT_NAME = spacenet_building_challenge
 PYTHON_INTERPRETER = python3
 
+MUL_PANSHARPEN_IMGS = data/processed/train/data/MUL-PanSharpen
+BUILDING_FOLDER = data/processed/train/buildings
+MODEL_FOLDER = models
+INFO_CSV = data/processed/train/Building_Solutions.csv
+REPORT_FOLDER = reports/figures
+MUL_PANSHARPEN_MEAN_STD_JSON = data/processed/stats_mul_pan.json
+MUL_PANSHARPEN_RESULTS = reports/results_mul_pansharpen.pkl
+BATCH_SIZE = 16
+EPOCHS = 100
+DEVICE = cuda:0
+
 ifeq (,$(shell which conda))
 HAS_CONDA=False
 else
@@ -75,6 +86,21 @@ endif
 ## Test python environment is setup correctly
 test_environment:
 	$(PYTHON_INTERPRETER) test_environment.py
+
+## Train model
+train_mul_pansharpen:
+	$(PYTHON_INTERPRETER) src/models/train_model.py \
+	$(MUL_PANSHARPEN_IMGS) \
+	$(MODEL_FOLDER) \
+	$(BUILDING_FOLDER) \
+	$(REPORT_FOLDER) \
+	$(INFO_CSV) \
+	$(MUL_PANSHARPEN_MEAN_STD_JSON) \
+	$(MUL_PANSHARPEN_RESULTS) \
+	$(BATCH_SIZE) \
+	$(EPOCHS) \
+	$(DEVICE)
+
 
 #################################################################################
 # PROJECT RULES                                                                 #
