@@ -90,7 +90,7 @@ test_environment:
 
 ## Check dataset
 check_mul_pansharpen:
-	$(PYTHON_INTERPRETER) src\data\building_info.py \
+	$(PYTHON_INTERPRETER) src/data/building_info.py \
 	$(MUL_PANSHARPEN_IMGS) \
 	$(INFO_FOLDER) \
 	$(INFO_CSV)
