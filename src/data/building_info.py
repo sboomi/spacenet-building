@@ -42,6 +42,8 @@ def count_files_per_city(image_folder):
 @click.argument("csv_res", type=click.Path())
 def main(image_folder, csv_folder, csv_res):
     csv_res = Path(csv_res)
+    csv_folder = Path(csv_folder)
+    image_folder = Path(image_folder)
     
     if not csv_res.exists():
         df = generate_csv(csv_folder, csv_res)
