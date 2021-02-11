@@ -19,7 +19,7 @@ REPORT_FOLDER = reports/figures
 MUL_PANSHARPEN_MEAN_STD_JSON = data/processed/stats_mul_pan.json
 MUL_PANSHARPEN_RESULTS = reports/results_mul_pansharpen.pkl
 BATCH_SIZE = 16
-EPOCHS = 100
+EPOCHS = 50
 DEVICE = cuda:0
 
 ifeq (,$(shell which conda))

@@ -204,7 +204,7 @@ def train(model:        nn.Module,
             'model_state_dict': model.state_dict(),
             'optimizer_state_dict': optimizer.state_dict(),
             'results': results},
-            chkpt_folder / f'tiramisu_chkpt_epoch_{epoch:03d}.pt'
+            chkpt_folder / f'unet_chkpt_epoch_{epoch:03d}.pt'
         )
 
     return results
