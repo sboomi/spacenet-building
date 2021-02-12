@@ -19,6 +19,10 @@ def comp_corr_pred(cm: np.ndarray) -> float:
     return (cm * np.identity(m_size)).sum() / cm.sum()
 
 
+def iou(cm: np.ndarray) -> float:
+    return cm[-1, -1] / (cm.sum() - cm[0, 0])
+
+
 def plot_loss(results: dict, fig_folder: Path) -> None:
     """Shows the evolution of the training and validation loss
     on a line plot.
@@ -100,3 +104,23 @@ def plot_accuracy(results: dict, fig_folder: Path) -> None:
     ax.set_ylabel("Accuracy")
     ax.legend()
     fig.savefig(fig_folder / "accuracy_evolution.png")
+
+
+def plot_iou(results: dict, fig_folder: Path) -> None:
+    """Shows the evolution of the intersection over union ratio.
+    The results are saved in a .png file.
+
+    Args:
+        results (dict): a dictionary containing the results
+        fig_folder (Path): the folder where vizualisations are saved
+    """
+    fig_folder.mkdir(exist_ok=True)
+    cm_epoch = results["val"]["conf_matrix"]
+    corr_pred = np.array([iou(cm) for cm in cm_epoch])
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(corr_pred)
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("IoU")
+    ax.set_title("Evolution of IoU")
+    fig.savefig(fig_folder / "iou.png")

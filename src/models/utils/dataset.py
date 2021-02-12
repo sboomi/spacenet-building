@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import rasterio
+from rasterio.mask import mask
 from tqdm import tqdm
 import json
 import fiona
@@ -17,8 +18,12 @@ def compute_mean_std(image_folder, n_ch):
     sum_channels = np.zeros(n_ch)  # 8, 3 or 1
     std_channels = np.zeros(n_ch)
     total_pixel = 0
+    
+    total_img = len(list(image_folder.iterdir()))
 
-    for img in tqdm(image_folder.iterdir(), desc="Mean computation"):
+    for img in tqdm(image_folder.iterdir(),
+                    desc="Mean computation",
+                    total=total_img):
         with rasterio.open(img, 'r') as ds:
             try:
                 arr = ds.read()
@@ -32,7 +37,9 @@ def compute_mean_std(image_folder, n_ch):
             
     mean_channels = sum_channels / total_pixel
 
-    for img in tqdm(image_folder.iterdir()):
+    for img in tqdm(image_folder.iterdir(),
+                    desc="std computation",
+                    total=total_img):
         with rasterio.open(img, 'r') as ds:
             try:
                 arr = ds.read()
@@ -70,7 +77,17 @@ def get_tif_dims(tif_file):
     return n_ch, h, w
 
 
-def load_tif(fn, df, mean_vec, std_vec, building_folder):
+def add_padding(arr, pad_h, pad_w):
+    n_ch, h, w = arr.shape
+    
+    plus_h = np.zeros((n_ch, pad_h, w))
+    plus_w = np.zeros((n_ch, h+pad_h, pad_w))
+    
+    temp = np.concatenate((arr, plus_h), axis=1)
+    return np.concatenate((temp, plus_w), axis=2)
+
+
+def load_tif(fn, df, mean_vec, std_vec, building_folder, padding=None):
     img_id = "_".join(Path(fn).stem.split("_")[1:])  # get img id
 
     no_building = df[df['BuildingId'] == -1]['ImageId'].unique().tolist()
@@ -98,10 +115,15 @@ def load_tif(fn, df, mean_vec, std_vec, building_folder):
     # Extract mask if necessary
     with rasterio.open('temp.tif') as tif:
         if features:
-            mask_img, _ = rasterio.mask.mask(tif, features)
+            mask_img, _ = mask(tif, features)
         else:
             mask_img = tif.read()
-      
+    
+    if padding:
+        pad_h, pad_w = padding
+        arr = add_padding(arr, pad_h, pad_w)
+        mask_img = add_padding(mask_img, pad_h, pad_w)
+    
     # arr = norm_img(arr, mean_vec, std_vec)
     arr, mask_img = arr.astype('float32'), mask_img.squeeze().astype('int64')
     Path('temp.tif').unlink()

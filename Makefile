@@ -19,6 +19,7 @@ REPORT_FOLDER = reports/figures
 MUL_PANSHARPEN_MEAN_STD_JSON = data/processed/stats_mul_pan.json
 MUL_PANSHARPEN_RESULTS = reports/results_mul_pansharpen.pkl
 BATCH_SIZE = 16
+OPT_BATCH_SIZE = 32
 EPOCHS = 50
 DEVICE = cuda:0
 
@@ -107,6 +108,7 @@ train_mul_pansharpen:
 	$(MUL_PANSHARPEN_MEAN_STD_JSON) \
 	$(MUL_PANSHARPEN_RESULTS) \
 	$(BATCH_SIZE) \
+	$(OPT_BATCH_SIZE) \
 	$(EPOCHS) \
 	$(DEVICE)
 

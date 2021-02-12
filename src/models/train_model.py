@@ -14,7 +14,7 @@ from utils.dataset import load_tif, load_stats, split_dataset, get_tif_dims, \
     compute_mean_std
 from utils.model import train
 from utils.viz import plot_loss, plot_last_cm, plot_correct_preds, \
-    plot_accuracy
+    plot_accuracy, plot_iou
 
 
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -31,6 +31,7 @@ logger = logging.getLogger('train_model')
 @click.argument("stats_json_file", type=click.Path())
 @click.argument("train_results", type=click.Path())
 @click.argument("batch_size", type=int)
+@click.argument("ideal_batch_size", type=int)
 @click.argument("epochs", type=int)
 @click.argument("device_name", type=str, default="cuda:0")
 def main(image_folder,
@@ -41,6 +42,7 @@ def main(image_folder,
          stats_json_file,
          train_results,
          batch_size,
+         ideal_batch_size,
          epochs,
          device_name):
         
@@ -49,6 +51,7 @@ def main(image_folder,
     model_folder = Path(model_folder)
     building_folder = Path(building_folder)
     stats_json_file = Path(stats_json_file)
+    figure_folder = Path(figure_folder)
     
     # Seed program
     torch.manual_seed(0)
@@ -57,26 +60,31 @@ def main(image_folder,
     df = pd.read_csv(info_csv)
     
     # Get information on a TIF
-    sample_img = list(image_folder.iterdir())[0]
-    n_ch, h, w = get_tif_dims(sample_img)
+    subfolder = list(image_folder.iterdir())[0]
+    n_ch, h, w = get_tif_dims(list(subfolder.iterdir())[0])
     
     # Get means and stds
     if stats_json_file.exists():
         mean_channels, std_channels = load_stats(stats_json_file)
     else:
-        stats = compute_mean_std(image_folder, n_ch)
+        stats = compute_mean_std(subfolder, n_ch)
         mean_channels = stats['mean']
         std_channels = stats["std"]
         
         with open(stats_json_file, 'w') as file:
             json.dump(stats, file)
     
+    # New dims for image
+    pad_h, pad_w = 8 - h % 8, 8 - w % 8
+    
+    # Prepare loading function
     load_tif_with_mask = partial(
         load_tif,
         df=df,
         mean_vec=mean_channels,
         std_vec=std_channels,
-        building_folder=building_folder)
+        building_folder=building_folder,
+        padding=(pad_h, pad_w))
     
     # Make dataset
     ds = datasets.DatasetFolder(root=image_folder,
@@ -93,8 +101,8 @@ def main(image_folder,
     
     train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True)
     val_dl = DataLoader(val_ds, batch_size=batch_size, shuffle=True)
-    logger.info("N° of iterations per batch (train):", len(train_dl))
-    logger.info("N° of iterations per batch (val):", len(val_dl))
+    logger.info(f"N° of iterations per batch (train): {len(train_dl)}")
+    logger.info(f"N° of iterations per batch (val): {len(val_dl)}")
     
     # get model
     logger.info("Getting U-Net model")
@@ -117,7 +125,7 @@ def main(image_folder,
     
     results = train(model, train_dl, val_dl, criterion,
                     optimizer, epochs, device, 2,
-                    model_folder)
+                    model_folder, ideal_batch_size // batch_size)
     
     # Saves model metrics as pickle file
     with open(train_results, "wb") as f:
@@ -141,6 +149,9 @@ def main(image_folder,
 
     plot_accuracy(results, figure_folder)
     logger.info("Accuracy plot created.")
+    
+    plot_iou(results, figure_folder)
+    logger.info("IoU evolution plot created.")
 
 
 if __name__ == "__main__":

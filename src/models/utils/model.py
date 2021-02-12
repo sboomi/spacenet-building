@@ -102,7 +102,8 @@ def train_per_epoch(model:        nn.Module,
                     train_loader: DataLoader,
                     criterion:    nn.modules.loss,
                     optimizer:    Optimizer,
-                    device:       torch.device
+                    device:       torch.device,
+                    sim_bs:       int = -1
                     ) -> None:
     """Trains a model for a single epoch.
 
@@ -122,14 +123,23 @@ def train_per_epoch(model:        nn.Module,
     ):
         img, lab = img.to(device), lab.to(device)
 
-        optimizer.zero_grad()
+        if sim_bs == -1:
+            optimizer.zero_grad()
 
         # _, clf_out = model(img)
         clf_out = model(img)
         loss = criterion(clf_out, lab)
+        
+        if sim_bs > -1:
+            loss /= sim_bs
 
         loss.backward()
-        optimizer.step()
+        
+        if sim_bs == -1:
+            optimizer.step()
+        elif sim_bs > -1 and (bs+1) % sim_bs == 0:
+            optimizer.step()
+            optimizer.zero_grad()
 
         if (bs+1) % 100 == 0:
             logger.info(format_batch_score(bs + 1, loss.detach().item()))
@@ -144,8 +154,9 @@ def train(model:        nn.Module,
           epochs:       int,
           device:       torch.device,
           n_labels:     int,
-          model_folder: Path
-          ) -> dict[str, dict[str, list]]:
+          model_folder: Path,
+          sim_bs: int = -1
+          ):
     """Main function for training."""
 
     results = {"train": {"loss": [], "conf_matrix": [], "accuracy": []},
@@ -160,7 +171,8 @@ def train(model:        nn.Module,
             train_loader,
             criterion,
             optimizer,
-            device
+            device,
+            sim_bs
         )
 
         train_loss, train_cm = evaluate(
