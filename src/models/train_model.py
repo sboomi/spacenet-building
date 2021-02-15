@@ -14,7 +14,7 @@ from utils.dataset import load_tif, load_stats, split_dataset, get_tif_dims, \
     compute_mean_std
 from utils.model import train
 from utils.viz import plot_loss, plot_last_cm, plot_correct_preds, \
-    plot_accuracy, plot_iou
+    plot_accuracy, plot_iou, generate_masks
 
 
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -152,6 +152,10 @@ def main(image_folder,
     
     plot_iou(results, figure_folder)
     logger.info("IoU evolution plot created.")
+    
+    for i in range(5):
+        generate_masks(ds, model, figure_folder, i, 5)
+    logger.info("Created model results.")
 
 
 if __name__ == "__main__":

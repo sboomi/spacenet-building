@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+import torch
 from pathlib import Path
 
 
@@ -124,3 +125,43 @@ def plot_iou(results: dict, fig_folder: Path) -> None:
     ax.set_ylabel("IoU")
     ax.set_title("Evolution of IoU")
     fig.savefig(fig_folder / "iou.png")
+
+
+def generate_masks(ds, model, fig_folder, slot_number, n_samples):
+    fig_folder.mkdir(exist_ok=True)
+    train_mask_folder = fig_folder / 'train_masks'
+    train_mask_folder.mkdir(exist_ok=True)
+    
+    random_idx = np.random.choice(len(ds), size=n_samples)
+    imgs = []
+    masks = []
+    
+    for i in random_idx:
+        (img, mask_img), _ = ds[i]
+        imgs.append(torch.from_numpy(img))
+        masks.append(torch.from_numpy(mask_img))
+    
+    imgs, masks = torch.stack(imgs), torch.stack(masks)
+    
+    with torch.no_grad():
+        pred = model(imgs)
+        
+    n_rows = pred.shape[0]
+    n_cols = 4
+
+    fig, axs = plt.subplots(n_rows, n_cols, figsize=(12, 18))
+    fig.suptitle('Image, mask, probabilities and predictions', fontsize=12)
+
+    for i_row, axrow in enumerate(axs):
+        img_rgb = imgs[i_row, [4, 2, 1], :650, :650].numpy()
+        img_rgb = np.transpose(img_rgb, axes=(1, 2, 0))
+        img_rgb = (img_rgb - img_rgb.min()) / (img_rgb.max() - img_rgb.min())
+        
+        axrow[0].imshow(img_rgb)
+        axrow[1].imshow(masks[i_row, :650, :650].numpy())
+        axrow[2].imshow(pred[i_row, 1, :650, :650].numpy())
+        axrow[3].imshow(pred.argmax(dim=1)[i_row, :650, :650].numpy())
+    
+    fig.savefig(fig_folder / f"unet_mask_results_{slot_number}.png")
+    
+    

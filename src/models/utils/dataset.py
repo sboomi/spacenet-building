@@ -124,7 +124,7 @@ def load_tif(fn, df, mean_vec, std_vec, building_folder, padding=None):
         arr = add_padding(arr, pad_h, pad_w)
         mask_img = add_padding(mask_img, pad_h, pad_w)
     
-    # arr = norm_img(arr, mean_vec, std_vec)
+    arr = norm_img(arr, mean_vec, std_vec)
     arr, mask_img = arr.astype('float32'), mask_img.squeeze().astype('int64')
     Path('temp.tif').unlink()
 

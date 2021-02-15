@@ -11,6 +11,7 @@ PROJECT_NAME = spacenet_building_challenge
 PYTHON_INTERPRETER = python3
 
 MUL_PANSHARPEN_IMGS = data/processed/train/data/MUL-PanSharpen
+MUL_PANSHARPEN_TEST = data/processed/test/MUL-PanSharpen
 BUILDING_FOLDER = data/processed/train/buildings
 MODEL_FOLDER = models
 INFO_FOLDER = data/raw/train/info
@@ -18,10 +19,13 @@ INFO_CSV = data/processed/train/Building_Solutions.csv
 REPORT_FOLDER = reports/figures
 MUL_PANSHARPEN_MEAN_STD_JSON = data/processed/stats_mul_pan.json
 MUL_PANSHARPEN_RESULTS = reports/results_mul_pansharpen.pkl
-BATCH_SIZE = 16
+BATCH_SIZE = 8
 OPT_BATCH_SIZE = 32
 EPOCHS = 50
 DEVICE = cuda:0
+
+UNET_MODEL = models/unet_model
+UNET_TEST_MUL = test_mulpan_unet
 
 ifeq (,$(shell which conda))
 HAS_CONDA=False
@@ -111,6 +115,17 @@ train_mul_pansharpen:
 	$(OPT_BATCH_SIZE) \
 	$(EPOCHS) \
 	$(DEVICE)
+
+## Test model
+test_mul_pansharpen:
+	$(PYTHON_INTERPRETER) src/visualization/visualize.py \
+	$(REPORT_FOLDER) \
+	$(MUL_PANSHARPEN_TEST) \
+	$(UNET_MODEL) \
+	$(MUL_PANSHARPEN_MEAN_STD_JSON) \
+	8 \
+	$(UNET_TEST_MUL)
+
 
 
 #################################################################################
