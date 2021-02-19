@@ -1,18 +1,79 @@
 import logging
 import numpy as np
+import pandas as pd
 import rasterio
 from rasterio.mask import mask
 from tqdm import tqdm
 import json
 import fiona
+import torch
 from pathlib import Path
-from torch.utils.data import random_split
+from torch.utils.data import random_split, Dataset
+from typing import Tuple
 
 
 log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 logging.basicConfig(level=logging.INFO, format=log_fmt)
 logger = logging.getLogger('model_utils_dataset')
 
+
+class MulPanSharpenDataset(Dataset):
+    def __init__(self, image_folder,
+                 building_folder,
+                 csv_data,
+                 transforms=None):
+        self.image_folder = image_folder
+        self.building_folder = building_folder
+        self.csv_data = csv_data
+        self.transforms = transforms
+    
+    def __len__(self):
+        return len(list(self.image_folder.iterdir()))
+    
+    def __getitem__(self, idx):
+        file_img = list(self.image_folder.iterdir())[idx]
+        
+        img_id = "_".join(file_img.stem.split("_")[1:])
+        no_building = self.csv_data[self.csv_data['BuildingId'] == -1]['ImageId'].unique().tolist()
+        geojson_path = self.building_folder / f"buildings_{img_id}.geojson"
+
+        # Extract the file as a (8 x 650 x 650) cube
+        with rasterio.open(file_img) as tif:
+            arr = tif.read()
+            info = tif.meta
+        
+        info['count'] = 1
+        # Extract geofeatures if the image has buildings
+        if img_id in no_building:
+            X = np.zeros((info['height'], info['width']), dtype='uint16')
+            features = []
+        else:
+            with fiona.open(geojson_path, "r") as geojson:
+                features = [feature["geometry"] for feature in geojson]
+            X = np.ones((info['height'], info['width']), dtype='uint16')
+
+        # Write polygons as a tif whose dimensions are the same than the opened tif
+        with rasterio.open('temp.tif', 'w', **info) as new_ds:
+            new_ds.write(X, 1)
+        
+        # Extract mask if necessary
+        with rasterio.open('temp.tif') as tif:
+            if features:
+                mask_img, _ = mask(tif, features)
+            else:
+                mask_img = tif.read()
+
+        arr = torch.from_numpy(arr.astype(np.int16)).float()
+        mask_img = torch.from_numpy(mask_img.astype(np.int64)).long()
+        
+        
+        if self.transforms:
+            arr, mask_img = self.transforms(arr, mask_img)
+
+        Path('temp.tif').unlink()
+
+        return arr, mask_img.squeeze(0)
+    
 
 def compute_mean_std(image_folder, n_ch):
     sum_channels = np.zeros(n_ch)  # 8, 3 or 1
@@ -87,7 +148,12 @@ def add_padding(arr, pad_h, pad_w):
     return np.concatenate((temp, plus_w), axis=2)
 
 
-def load_tif(fn, df, mean_vec, std_vec, building_folder, padding=None):
+def load_tif(fn,
+             df,
+             mean_vec,
+             std_vec,
+             building_folder,
+             padding=None):
     img_id = "_".join(Path(fn).stem.split("_")[1:])  # get img id
 
     no_building = df[df['BuildingId'] == -1]['ImageId'].unique().tolist()
@@ -131,7 +197,17 @@ def load_tif(fn, df, mean_vec, std_vec, building_folder, padding=None):
     return arr, mask_img
 
 
-def split_dataset(ds, train_size=0.8):
+def split_dataset(ds: Dataset,
+                  train_size: float = 0.8) -> Tuple(Dataset, Dataset):
+    """Splits a given dataset into a training and validation set
+
+    Args:
+        ds (Dataset): [description]
+        train_size (float, optional): [description]. Defaults to 0.8)
+
+    Returns:
+        [type]: [description]
+    """
     if type(train_size) is float:
         train_size = int(len(ds)*train_size)
     train_ds, val_ds = random_split(ds, (train_size, len(ds)-train_size))
