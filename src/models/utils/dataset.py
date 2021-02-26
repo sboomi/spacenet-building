@@ -26,6 +26,7 @@ class MulPanSharpenDataset(Dataset):
         self.building_folder = building_folder
         self.csv_data = csv_data
         self.transforms = transforms
+        self.label = "MUL-PanSharpen"
     
     def __len__(self):
         return len(list(self.image_folder.iterdir()))
@@ -65,7 +66,6 @@ class MulPanSharpenDataset(Dataset):
 
         arr = torch.from_numpy(arr.astype(np.int16)).float()
         mask_img = torch.from_numpy(mask_img.astype(np.int64)).long()
-        
         
         if self.transforms:
             arr, mask_img = self.transforms(arr, mask_img)
@@ -198,7 +198,7 @@ def load_tif(fn,
 
 
 def split_dataset(ds: Dataset,
-                  train_size: float = 0.8) -> Tuple(Dataset, Dataset):
+                  train_size: float = 0.8):
     """Splits a given dataset into a training and validation set
 
     Args:

@@ -75,7 +75,7 @@ def evaluate(model, loader, device, criterion, n_labels, n_batch=-1):
     cm = np.zeros((n_labels, n_labels))
 
     total = len(loader) if n_batch == -1 else n_batch
-    for bs, ((img, lab), _) in tqdm(
+    for bs, (img, lab) in tqdm(
         enumerate(loader),
         desc='Eval',
         total=total
@@ -116,7 +116,7 @@ def train_per_epoch(model:        nn.Module,
     """
     model.train()
 
-    for bs, ((img, lab), _) in tqdm(
+    for bs, (img, lab) in tqdm(
         enumerate(train_loader),
         desc='Batch',
         total=len(train_loader)

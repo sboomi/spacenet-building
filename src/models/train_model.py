@@ -62,14 +62,13 @@ def main(image_folder,
     df = pd.read_csv(info_csv)
     
     # Get information on a TIF
-    subfolder = list(image_folder.iterdir())[0]
-    n_ch, h, w = get_tif_dims(list(subfolder.iterdir())[0])
+    n_ch, h, w = get_tif_dims(list(image_folder.iterdir())[0])
     
     # Get means and stds
     if stats_json_file.exists():
         mean_channels, std_channels = load_stats(stats_json_file)
     else:
-        stats = compute_mean_std(subfolder, n_ch)
+        stats = compute_mean_std(image_folder, n_ch)
         mean_channels = stats['mean']
         std_channels = stats["std"]
         
@@ -114,7 +113,7 @@ def main(image_folder,
     #                             extensions=('.tif',))
 
     logger.info(f"N° of images: {len(ds)}")
-    logger.info(f"Type of img: {ds.classes[0]}")
+    logger.info(f"Type of img: {ds.label}")
     
     train_ds, val_ds = split_dataset(ds, train_size=0.8)
     

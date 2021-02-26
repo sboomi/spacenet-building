@@ -80,6 +80,7 @@ target/
 /models/
 results_*.pkl
 /reports/figures/*.png
+/reports/figures/*
 
 # Mac OS-specific storage files
 .DS_Store
